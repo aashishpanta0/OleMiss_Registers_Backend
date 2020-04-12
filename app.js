@@ -1,6 +1,7 @@
 const express = require('express');
 const mysql = require('mysql');
-const cors = require('cors')
+const cors = require('cors');
+var jwt= require('jwt-simple');
 
 // Create connection
 const db = mysql.createConnection({
@@ -20,8 +21,11 @@ db.connect((err) => {
 
 const app = express();
 app.use(cors())
-app.use(express.json())
+app.use(express.json());
+var secret='yebhai'
 
+let token=''
+let decoded=''
 
 // Insert admin
 app.post('/admin/create', (req, res) => {
@@ -47,8 +51,8 @@ app.post('/admin/create', (req, res) => {
             db.query(sql, (error, result) => {
                 console.log("Log6")
                 if (result.length !== 0) {
-                    console.log("Log7")
-                    return res.status(400).send("User exists")
+                    
+                    return res.status(200).send("User exists")
                 }
                 let post = { olemissid: req.body.olemissid, Name: req.body.name, email: req.body.email, password: req.body.password };
                 let sql = 'INSERT INTO admin SET ?';
@@ -130,6 +134,7 @@ app.post('/admin/create', (req, res) => {
 
 
 });
+
 app.post('/admin/login', (req, res) => {
     console.log('log1')
     const userType = req.body.user;
@@ -178,11 +183,15 @@ app.post('/admin/login', (req, res) => {
                 return res.send('400').send('user not found');
                 
             }
-           
+        
             if(result.length!==0 && req.body.password===result[0].password){
+                token=jwt.encode(result[0].email, secret);
+                 decoded=jwt.decode(token, secret);
+                
+                console.log(result[0].studentid)
                 console.log('log5: student login successful');
-                 
-                return res.status('200').send(result);
+                 console.log(result[0].email)
+                return res.status('200').send(token);
             }
             })
         }
@@ -209,6 +218,29 @@ app.post('/admin/login', (req, res) => {
             })
         }
 });
+
+app.post('/verifyuser', (req, res)=>{
+    decoded=jwt.decode(req.body.token, secret);
+    let email = decoded;
+    const  isValid=true;
+    let sql = `SELECT * FROM students WHERE email='${email}'`
+    db.query(sql, (err, result)=>{
+        if(err){
+            return res.status('500').send('error')
+        }
+        if(result.length===0){
+            return res.status('400').send('user not found')
+        }
+        if(result.length!==0){
+            console.log(isValid)
+            return res.status('200').send(isValid)
+        }
+    })
+
+
+})
+
+
 
 
 // Select posts
