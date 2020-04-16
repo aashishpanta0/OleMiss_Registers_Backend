@@ -103,7 +103,7 @@ app.post('/admin/create', (req, res) => {
 
     if (userType === "Student") {
         let sql = `SELECT * FROM students WHERE studentid="${req.body.olemissid}"`
-        
+
         db.query(sql, (err, result) => {
 
             if (err) {
@@ -153,13 +153,15 @@ app.post('/admin/login', (req, res) => {
                 return res.status(400).send({ error: "USER NOT FOUND" })
 
             }
-            
+
             if (result.length !== 0 && req.body.password === result[0].password) {
+                token = jwt.encode(result[0].email, secret);
+                decoded = jwt.decode(token, secret);
                 console.log('log5')
 
                 console.log('log6')
                 console.log('valid credentials')
-                return res.status('200').send(result)
+                return res.status('200').send({ token, user: userType })
 
             }
 
@@ -188,10 +190,11 @@ app.post('/admin/login', (req, res) => {
                 token = jwt.encode(result[0].email, secret);
                 decoded = jwt.decode(token, secret);
 
-              
+
                 console.log('log5: student login successful');
                 console.log(result[0].email)
-                return res.status('200').send(token);
+                console.log(userType)
+                return res.status('200').send({ token, user: userType });
             }
         })
     }
@@ -223,73 +226,173 @@ app.post('/verifyuser', (req, res) => {
 
     decoded = jwt.decode(req.body.token, secret);
     let email = decoded;
-    const isValid = true;
-    let sql = `SELECT * FROM students WHERE email='${email}'`
-    db.query(sql, (err, result) => {
-        if (err) {
-            return res.status('500').send('error')
-        }
-        if (result.length === 0) {
-            return res.status('400').send('user not found')
-        }
-        if (result.length !== 0) {
-            console.log(isValid)
-            return res.status('200').send({ isValid, name: result[0].student_name })
-        }
-    })
+    let usertype = req.body.usertype;
+    console.log(usertype);
+    if (usertype === 'Student') {
+        const isValid = true;
+        let sql = `SELECT * FROM students WHERE email='${email}'`
+        db.query(sql, (err, result) => {
+            if (err) {
+                return res.status('500').send('error')
+            }
+            if (result.length === 0) {
+                return res.status('400').send('user not found')
+            }
+            if (result.length !== 0) {
+                console.log(isValid)
+                return res.status('200').send({ isValid, name: result[0].student_name })
+            }
+        })
+
+    }
+    if (usertype === 'Department') {
+        const isValid = true;
+        let sql = `SELECT * FROM admin WHERE email='${email}'`
+        db.query(sql, (err, result) => {
+            if (err) {
+                return res.status('500').send('error')
+            }
+            if (result.length === 0) {
+                return res.status('400').send('user not found')
+            }
+            if (result.length !== 0) {
+                console.log(isValid)
+                console.log('admin verified')
+                return res.status('200').send({ isValid, name: result[0].name })
+            }
+        })
+
+
+    }
+
 
 
 })
+app.post('/admin/addcourses')
+
+// app.post('/verifyadmin', (req, res) => {
+
+//     decoded = jwt.decode(req.body.token, secret);
+//     let email = decoded;
+//     const isValid = true;
+//     let sql = `SELECT * FROM admin WHERE email='${email}'`
+//     db.query(sql, (err, result) => {
+//         if (err) {
+//             return res.status('500').send('error')
+//         }
+//         if (result.length === 0) {
+//             return res.status('400').send('user not found')
+//         }
+//         if (result.length !== 0) {
+//             console.log(isValid)
+//             return res.status('200').send({ isValid, name: result[0].Name})
+//         }
+//     })
+
+
+// })
+
 
 app.post('/student/addcourse', (req, res) => {
     console.log('log1')
+    
     let decodedemail = jwt.decode(req.body.token, secret);
+    console.log(decodedemail)
     let sql = `SELECT studentid FROM students where email='${decodedemail}'`
     db.query(sql, (err, result1) => {
-
+        console.log('log2')
         if (err) {
-
-
             return res.status('500').send('Server Error')
         }
 
-        req.body.courseid.map((eachcourse) => {
-            // console.log('log5')
-            let sql = `SELECT * FROM studentcourse WHERE Courses_courseid='${eachcourse}' AND students_studentid='${result1[0].studentid}'`
-            db.query(sql, (err, result) => {
-                if (err) {
-                    return res.status('200').send('Server Error')
-                }
+            req.body.time.map((timeeachcourse, index) => {
+                console.log('log3')
+                console.log(`${timeeachcourse}`)
+                console.log(index)
+                console.log(req.body.courseid[0])
+                let sql = `SELECT * FROM studentcourse WHERE time='${timeeachcourse}' AND students_studentid='${result1[0].studentid}'`
+                db.query(sql, (err, result) => {
+                    console.log('log4')
+                    if (err) {
+                        console.log('log5')
+                        return res.status('200').send('Server Error')
+                    }
+                    console.log(result)
+                    
+                    
+                    if (result.length === 0) {
+                        console.log('log7')
+                        console.log('next: insert')
+                        let post = { Courses_courseid: req.body.courseid[index], students_studentid: result1[0].studentid, time: timeeachcourse }
+                        let sql = `INSERT INTO  studentcourse SET ?`
 
-                if (result.length === 0) {
-                    let post = { Courses_courseid: eachcourse, students_studentid: result1[0].studentid }
-                    let sql = `INSERT INTO  studentcourse SET ?`
+                        db.query(sql, post, (err, result) => {
+                            // console.log('log6')
+                            if (err) {
 
-                    db.query(sql, post, (err, result) => {
-                        // console.log('log6')
-                        if (err) {
+                                return res.status('500').send('error')
+                            }
 
-                            return res.status('500').send('error')
-                        }
+                        })
 
-                    })
+                    }
+                })
 
-                }
+
+
+
+
             })
-
-
-
-
-        }
-        )
+            // console.log('log5')        )
 
     }
     )
     res.status(200).send("Added Courses");
 })
+app.post('/admin/registercourses', (req, res) => {
+    console.log('log1')
+
+    let sql = `SELECT * FROM courses WHERE courseid='${req.body.courseid}'`
+    db.query(sql, (err, result) => {
+        if (err) {
+            return res.status('200').send('Server Error')
+        }
+        if (result.length !== 0) {
+            return res.status('400').send('Course Already Exists')
+        }
+        if (result.length === 0) {
+            let post = {
+                courseid: req.body.courseid,
+                course_name: req.body.coursename,
+                time: req.body.time,
+                section: req.body.section,
+                room: req.body.room,
+                teacher: req.body.teacher,
+                building: req.body.building,
+                credithours: req.body.credithours,
+                capacity: req.body.capacity
+            }
+            let sql = `INSERT INTO courses SET ?`
+            db.query(sql, post, (err, result) => {
+                if (err) {
+                    return res.status('400').send('Server Error')
+                }
+                return res.status('200').send(result)
+            })
+
+
+        }
+
+    })
+
+
+})
+
+
 
 app.post('/student/removecourses', (req, res) => {
     console.log('log1')
+
     let decodedemail = jwt.decode(req.body.token, secret);
     console.log(decodedemail)
     let sql = `SELECT studentid from students WHERE email='${decodedemail}'`
@@ -299,11 +402,11 @@ app.post('/student/removecourses', (req, res) => {
             return res.status('400').send('Server Error')
         }
         console.log('log3')
-        
+
         console.log(result[0].studentid)
-        let courseid=req.body.courseid;
+        let courseid = req.body.courseid;
         console.log(courseid)
-        let studentid =  result[0].studentid;
+        let studentid = result[0].studentid;
         let sql = `DELETE FROM studentcourse WHERE Courses_courseid='${courseid}' AND students_studentid='${studentid}'`
         db.query(sql, (err, result) => {
             console.log('log4')
@@ -331,7 +434,7 @@ app.post('/mycourses', (req, res) => {
             return res.status('400').send('server error')
         }
 
-       
+
         let sql = `SELECT Courses_courseid from studentcourse where students_studentid='${result[0].studentid}'`
         db.query(sql, (err, result1) => {
             if (err) {
@@ -342,7 +445,7 @@ app.post('/mycourses', (req, res) => {
             // console.log(result1);
             return res.status('200').send(result1)
 
-        }) 
+        })
     })
 })
 // Select posts
@@ -350,7 +453,7 @@ app.get('/admin/retrieveadmin/:olemissid', (req, res) => {
     let sql = `SELECT * FROM admin WHERE olemissid= '${req.params.olemissid}'`;
     let query = db.query(sql, (err, results) => {
         if (err) throw err;
-         
+
         res.send(result);
     });
 });
@@ -371,7 +474,7 @@ app.post('/student/getcourses', (req, res) => {
             return res.status('500').send('Server Error');
         }
         if (result.length !== 0) {
-             
+
             return res.status('200').send(result);
 
         }
@@ -396,7 +499,7 @@ app.get('/admin/deleteadmin/:olemissid', (req, res) => {
     let sql = `DELETE FROM admin WHERE olemissid = ${req.params.olemissid}`;
     let query = db.query(sql, (err, result) => {
         if (err) throw err;
-        
+
 
 
         res.send('admin deleted...');
