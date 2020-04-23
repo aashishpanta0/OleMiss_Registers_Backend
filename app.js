@@ -316,27 +316,6 @@ app.post('/student/addcourse', (req, res) => {
                 }
 
 
-                let sql = `SELECT * FROM studentcourse WHERE time='${timeeachcourse}' AND Courses_courseid= '${req.body.courseid[index]}'`
-                db.query(sql, (err, result0) => {
-                    
-                    if (err) {
-                        return res.status('500').send('Server Error')
-                    }
-                    console.log(studentid)
-                    console.log('enroll check')
-                   
-                    console.log('student enrolled count')
-                    if (result0.length===0) {
-                        let sql = `UPDATE courses set studentsenrolled ='${result0.length + 1}' WHERE  courseid='${req.body.courseid[index]}'`
-                        db.query(sql, (err, result) => {
-                            console.log('update sql')
-                            if (err) {
-                                return res.status('500').send('Server Error')
-                            }
-                        })
-                     }
-
-                })
                 if (result.length === 0) {
                     console.log('log7')
                     console.log('next: insert')
@@ -349,6 +328,31 @@ app.post('/student/addcourse', (req, res) => {
 
                             return res.status('500').send('error')
                         }
+                        
+                let sql = `SELECT * FROM studentcourse WHERE time='${timeeachcourse}' 
+                
+                AND Courses_courseid= '${req.body.courseid[index]}'`
+                db.query(sql, (err, result0) => {
+                    
+                    if (err) {
+                        return res.status('500').send('Server Error')
+                    }
+                    
+                    console.log('enroll check')
+                   
+                    console.log('student enrolled count')
+                     
+                        console.log(result0.length)
+                        let sql = `UPDATE courses set studentsenrolled ='${result0.length }' WHERE  courseid='${req.body.courseid[index]}'`
+                        db.query(sql, (err, result) => {
+                            console.log('update sql')
+                            if (err) {
+                                return res.status('500').send('Server Error')
+                            }
+                        })
+                     
+
+                })
 
                     })
 
@@ -441,7 +445,7 @@ app.post('/student/removecourses', (req, res) => {
                     return res.status('500').send('Server Error')
                 }
                 console.log(result2.length)
-                let sql = `UPDATE courses SET studentsenrolled= '${result2.length - 1}' WHERE courseid='${courseid}'`
+                let sql = `UPDATE courses SET studentsenrolled= '${result2.length }' WHERE courseid='${courseid}'`
                 db.query(sql, (err, result) => {
                     console.log('log8')
                     if (err) {
@@ -471,7 +475,7 @@ app.post('/mycourses', (req, res) => {
             return res.status('400').send('server error')
         }
 
-        console.log(`${result[0].studentid}`)
+      
         let sql = `SELECT Courses_courseid from studentcourse where students_studentid='${result[0].studentid}'`
         db.query(sql, (err, result1) => {
             if (err) {
